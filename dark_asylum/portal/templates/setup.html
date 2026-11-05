@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Account setup{% endblock %}
+{% block content %}
+<section class="card auth">
+  <h2>Account setup</h2>
+  {% if stage == "token" %}
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Setup token <input name="token" value="{{ token }}" required autocomplete="off">
+      <small>Issued on the server with <code>python -m dark_asylum.cli setup-token</code>. Single use, expires in 1 hour.</small></label>
+    <label>New password <input type="password" name="password" minlength="14" autocomplete="new-password" required>
+      <small>At least 14 characters with mixed case and numbers/symbols.</small></label>
+    <label>Repeat password <input type="password" name="password2" autocomplete="new-password" required></label>
+    <button>Continue</button>
+  </form>
+  {% elif stage == "confirm" %}
+  <p>Scan this QR code with an authenticator app (or enter the key manually), then type the current code.</p>
+  <div class="qr">{{ qr_svg|safe }}</div>
+  <p class="muted">Manual key: <code>{{ secret }}</code></p>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Authenticator code <input name="otp" inputmode="numeric" required></label>
+    <button>Confirm and finish</button>
+  </form>
+  {% else %}
+  <p class="flash ok">Setup complete. Store these backup codes safely; each works once and they are shown only now.</p>
+  <ul class="codes">{% for c in codes %}<li>{{ c }}</li>{% endfor %}</ul>
+  <a class="btn" href="{{ url_for('login') }}">Go to sign in</a>
+  {% endif %}
+</section>
+{% endblock %}

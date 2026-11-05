@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Clan tracking<section class="card">
+  <h3>Rank promotion view</h3>
+  <p class="muted">Active members with join date, in-game clan rank and clan XP (from the hourly roster sync), and ranking
+    points against the target of {{ target|gp }}. "Eligible" means the target is met and the member is not opted out; promotions are still done by hand in game.</p>
+  <table>
+    <tr><th>RSN</th><th>Joined</th><th>Clan rank</th><th>Clan XP</th><th>Ranking pts</th><th>Eligible</th></tr>
+    {% for r in promotion %}
+    <tr><td>{{ r.rsn }}</td><td>{{ r.joined or '—' }}</td><td>{{ r.rank or '—' }}</td>
+      <td>{{ r.clan_xp|gp if r.clan_xp is not none else '—' }}</td><td>{{ r.points|gp }}</td>
+      <td>{{ 'Yes' if r.eligible else '' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No active members.</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}
+{% block content %}
+<h1>Clan tracking</h1>
+<section class="card">
+  <h3>Add or update a member</h3>
+  <form method="post" action="{{ url_for('members_link') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Discord ID <input name="discord_id" inputmode="numeric" required>
+      <small>Stable numeric ID; names can change, IDs cannot.</small></label>
+    <label>RuneScape 3 name <input name="rsn" maxlength="12" required>
+      <small>Replaces any previous RSN. Duplicates are rejected.</small></label>
+    <label>Join date <input name="join_date" placeholder="MM-DD-YYYY">
+      <small>Optional.</small></label>
+    {{ confirm() }}
+    <button>Save member</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Members</h3>
+  <label>Find <input id="member-filter" data-search="1" placeholder="Search RSN or ID" list="member-hints">
+    <small>Type to filter the table.</small></label>
+  <datalist id="member-hints"></datalist>
+  <table id="member-table">
+    <tr><th>RSN</th><th>Discord ID</th><th>Status</th><th>Joined</th><th>Ranking pts</th><th>Spending pts</th><th>Ranking opt-out</th><th></th></tr>
+    {% for m in rows %}
+    <tr><td>{{ m.rsn or '—' }}{% if m.profile_private %} <span class="st-down" title="RuneMetrics profile is private; check Citadel visits manually">private profile</span>{% endif %}</td><td>{{ m.discord_id }}</td><td>{{ m.status }}</td><td>{{ m.join_date or '—' }}</td>
+      <td>{{ m.ranking_points|gp }}</td><td>{{ m.spending_points|gp }}</td>
+      <td>
+        <form method="post" action="{{ url_for('members_opt_out', did=m.discord_id) }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}
+          <button class="ghost">{{ 'Opted out — enable' if m.ranking_opt_out else 'Included — opt out' }}</button></form></td>
+      <td>{% if m.status == 'active' %}
+        <form method="post" action="{{ url_for('members_remove', did=m.discord_id) }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input name="reason" placeholder="Reason" required>{{ confirm() }}
+          <button class="danger">Remove profile</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="8" class="muted">No members yet.</td></tr>{% endfor %}
+  </table>
+  <p class="muted">Removing a profile forfeits points but keeps member history, strikes and the bank ledger.</p>
+</section>
+<section class="card">
+  <h3>Rank promotion view</h3>
+  <p class="muted">Active members with join date, in-game clan rank and clan XP (from the hourly roster sync), and ranking
+    points against the target of {{ target|gp }}. "Eligible" means the target is met and the member is not opted out; promotions are still done by hand in game.</p>
+  <table>
+    <tr><th>RSN</th><th>Joined</th><th>Clan rank</th><th>Clan XP</th><th>Ranking pts</th><th>Eligible</th></tr>
+    {% for r in promotion %}
+    <tr><td>{{ r.rsn }}</td><td>{{ r.joined or '—' }}</td><td>{{ r.rank or '—' }}</td>
+      <td>{{ r.clan_xp|gp if r.clan_xp is not none else '—' }}</td><td>{{ r.points|gp }}</td>
+      <td>{{ 'Yes' if r.eligible else '' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No active members.</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

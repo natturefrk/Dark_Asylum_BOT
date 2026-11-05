@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Admin account{% endblock %}
+{% block content %}
+<h1>Admin account</h1>
+<section class="card">
+  <h3>Backup codes</h3>
+  <p>You have <strong>{{ codes_left }}</strong> unused backup codes.</p>
+  <form method="post" action="{{ url_for('regen_codes') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button>Generate new codes</button></form>
+</section>
+<section class="card">
+  <h3>Recover the other admin ({{ other_id }})</h3>
+  <p class="muted">Issues a one-time setup token that resets their password and authenticator. Only the two designated admins can do this.</p>
+  <form method="post" action="{{ url_for('recovery_token') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Issue recovery token</button></form>
+</section>
+{% endblock %}

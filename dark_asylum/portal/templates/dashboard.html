@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ clan }} dashboard</h1>
+<div class="cards">
+  <div class="card stat"><span>Bank balance</span><strong>{{ stats.bank|gp }} GP</strong></div>
+  <div class="card stat"><span>Active members</span><strong>{{ stats.members }}</strong></div>
+  <div class="card stat"><span>Points in circulation</span><strong>{{ stats.points|gp }}</strong></div>
+  <div class="card stat"><span>Strikes issued</span><strong>{{ stats.strikes }}</strong></div>
+  <div class="card stat"><span>Clan XP today</span><strong>{{ stats.xp_day|gp }}</strong></div>
+  <div class="card stat"><span>Clan XP this week</span><strong>{{ stats.xp_week|gp }}</strong></div>
+  <div class="card stat"><span>Private profiles</span><strong>{{ stats.private }}</strong>
+    <small>Citadel needs a manual check</small></div>
+</div>
+<div class="grid2">
+  <section class="card">
+    <h3>Bank balance (last {{ series|length }} transactions)</h3>
+    {% if series|length > 1 %}
+    {% set top_v = series|max or 1 %}
+    <svg viewBox="0 0 300 100" class="chart" role="img" aria-label="Bank balance trend">
+      <polyline fill="none" stroke="#c94b4b" stroke-width="2"
+        points="{% for v in series %}{{ (loop.index0 * 300 / (series|length - 1))|round(1) }},{{ (95 - v * 90 / top_v)|round(1) }} {% endfor %}"/>
+    </svg>
+    {% else %}<p class="muted">Not enough transactions yet.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h3>Top earners</h3>
+    {% set best = (top|map(attribute='total')|max) if top else 1 %}
+    <svg viewBox="0 0 300 {{ (top|length * 22) or 22 }}" class="chart" role="img" aria-label="Top point earners">
+      {% for t in top %}
+      <text x="0" y="{{ loop.index0 * 22 + 14 }}" fill="#ccc" font-size="11">{{ t.rsn }}</text>
+      <rect x="90" y="{{ loop.index0 * 22 + 4 }}" height="14" fill="#c94b4b"
+            width="{{ (t.total * 200 / (best or 1))|round(1) }}"/>
+      {% endfor %}
+    </svg>
+    {% if not top %}<p class="muted">No members with points yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Save these{% endblock %}
+{% block content %}
+<section class="card">
+  {% if codes %}
+  <h2>New backup codes</h2>
+  <p class="muted">Old codes no longer work. Shown once only.</p>
+  <ul class="codes">{% for c in codes %}<li>{{ c }}</li>{% endfor %}</ul>
+  {% else %}
+  <h2>Recovery token for the other admin</h2>
+  <p class="muted">Give this to them privately. They open <code>/setup</code> and paste it. Single use, 1 hour. Their old password and authenticator are replaced.</p>
+  <p><code>{{ token }}</code></p>
+  {% endif %}
+  <a class="btn" href="{{ url_for('account_page') }}">Back</a>
+</section>
+{% endblock %}

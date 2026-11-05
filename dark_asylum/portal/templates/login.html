@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<section class="card auth">
+  <h2>Admin sign in</h2>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Discord ID <input name="discord_id" inputmode="numeric" autocomplete="username" required>
+      <small>Your numeric Discord user ID.</small></label>
+    <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+    <label>Authenticator code <input name="otp" autocomplete="one-time-code" required>
+      <small>6-digit code, or a backup code. Required at every sign in.</small></label>
+    <button>Sign in</button>
+  </form>
+  <p class="muted">First time or locked out? Ask the server operator for a setup token (see README).</p>
+</section>
+{% endblock %}

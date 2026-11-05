@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Clan activities{% endblock %}
+{% block content %}
+<h1>Clan activities</h1>
+<div class="tabs" data-tabs>
+  <button class="tab on" data-tab="events">Events</button>
+  <button class="tab" data-tab="comps">Competitions</button>
+  <button class="tab" data-tab="gives">Giveaways</button>
+</div>
+
+<section class="tabpanel" id="tab-events">
+  <div class="card">
+    <h3>Schedule an event (times are UTC)</h3>
+    <form method="post" action="{{ url_for('event_create') }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Title <input name="title" required maxlength="100"></label>
+      <label>Start (UTC) <input name="starts_at" placeholder="2030-01-31 19:00" required><small>YYYY-MM-DD HH:MM. Discord shows it in each reader's timezone.</small></label>
+      <label>Repeat every N days <input name="recurrence_days" value="0"><small>0 = one-time.</small></label>
+      <label>Description <input name="description" maxlength="500"></label>
+      <label><input type="checkbox" name="remind_24h" checked> Remind 24 hours before</label>
+      <label><input type="checkbox" name="remind_1h" checked> Remind 1 hour before</label>
+      {{ confirm() }}<button>Schedule</button>
+    </form>
+  </div>
+  <div class="card">
+    <table><tr><th>#</th><th>Title</th><th>Starts (UTC)</th><th>Repeat</th><th>Status</th><th></th></tr>
+    {% for e in events %}<tr><td>{{ e.id }}</td><td>{{ e.title }}</td><td>{{ e.starts_at }}</td><td>{{ e.recurrence_days or '—' }}</td><td>{{ e.status }}</td>
+      <td>{% if e.status == 'scheduled' %}<form method="post" action="{{ url_for('event_cancel', event_id=e.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Cancel</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No events.</td></tr>{% endfor %}</table>
+  </div>
+  <div class="card">
+    <h3>Confirm attendance</h3>
+    <form method="post" action="{{ url_for('event_attendance') }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Event # <input name="event_id" required></label>
+      <label>Occurrence <input name="occurrence" placeholder="2030-01-31T19:00:00Z" required><small>The start time of the occurrence that was attended.</small></label>
+      <label>Member Discord ID <input name="discord_id" required><small>Points are paid only after you confirm, once per member.</small></label>
+      {{ confirm() }}<button>Confirm</button>
+    </form>
+  </div>
+</section>
+
+<section class="tabpanel" id="tab-comps" hidden>
+  <div class="card">
+    <h3>New competition (individuals)</h3>
+    <form method="post" action="{{ url_for('competition_create') }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Title <input name="title" required maxlength="100"></label>
+      <label>Kind <select name="kind"><option value="proof">Proof (bingo / non-API)</option><option value="xp">XP contest</option></select>
+        <small>XP contests need a verified XP source; none is configured, so snapshots stay empty.</small></label>
+      <label>Skill <input name="skill"><small>XP contests: exactly one skill.</small></label>
+      <label><input type="checkbox" name="rewarded"> Prize / reward contest <small>Members only; fun contests allow guests.</small></label>
+      {{ confirm() }}<button>Create</button>
+    </form>
+  </div>
+  {% for c in comps %}
+  <div class="card">
+    <h3>#{{ c.id }} {{ c.title }} <span class="muted">({{ c.kind }}, {{ c.status }}{{ ', prize' if c.rewarded }})</span></h3>
+    <table><tr><th>Entry</th><th>Name</th><th>Member</th><th>Proof</th><th>Placement</th><th></th></tr>
+    {% for e in entries if e.competition_id == c.id %}<tr><td>{{ e.id }}</td><td>{{ e.label }}</td><td>{{ 'yes' if e.is_member else 'guest' }}</td>
+      <td>{{ e.proof or '—' }} ({{ e.proof_status }})</td><td>{{ e.placement or '—' }}</td>
+      <td>{% if e.proof_status == 'pending' %}{% for d in ('approve', 'reject') %}<form method="post" action="{{ url_for('competition_proof', entry_id=e.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="decision" value="{{ d }}">{{ confirm() }}<button class="ghost">{{ d|capitalize }}</button></form>{% endfor %}{% endif %}</td></tr>
+    {% endfor %}</table>
+    {% if c.status in ('draft', 'open', 'review') %}
+    <form method="post" action="{{ url_for('competition_status', cid=c.id) }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Move to <select name="status">
+        {% for s in {'draft': ['open','cancelled'], 'open': ['review','cancelled'], 'review': ['open']}[c.status] %}<option>{{ s }}</option>{% endfor %}</select></label>
+      {{ confirm() }}<button>Update status</button></form>
+    {% endif %}
+    {% if c.status == 'review' %}
+    <form method="post" action="{{ url_for('competition_finish', cid=c.id) }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>1st place entry # <input name="place1"></label><label>2nd place entry # <input name="place2"></label><label>3rd place entry # <input name="place3">
+        <small>You decide ties. Participation and placement points are paid once on finishing.</small></label>
+      {{ confirm() }}<button>Finish &amp; award</button></form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+
+<section class="tabpanel" id="tab-gives" hidden>
+  <div class="card">
+    <h3>New giveaway <span class="muted">(bank: {{ '{:,}'.format(balance) }} GP)</span></h3>
+    <form method="post" action="{{ url_for('giveaway_create') }}" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Title <input name="title" required maxlength="100"></label>
+      <label>Prize (GP) <input name="prize_gp" required><small>Max 150,000,000. The bank must hold this much to publish.</small></label>
+      <label>Points per paid entry <input name="entry_cost" value="10"><small>The first entry is free; maximum entries set under Moderation settings.</small></label>
+      <label>Channel ID <input name="channel_id"><small>Blank = the events channel.</small></label>
+      {{ confirm() }}<button>Publish</button>
+    </form>
+  </div>
+  <div class="card"><table><tr><th>#</th><th>Title</th><th>Prize</th><th>Cost</th><th>Status</th><th>Winner</th><th></th></tr>
+    {% for x in gives %}<tr><td>{{ x.id }}</td><td>{{ x.title }}</td><td>{{ '{:,}'.format(x.prize_gp) }}</td><td>{{ x.entry_cost }}</td>
+      <td>{{ x.status }}{{ ', paid' if x.payout_paid }}</td><td>{{ x.winner_id or '—' }}</td><td>
+      {% if x.status == 'open' %}{% for a in ('draw', 'cancel') %}<form method="post" action="{{ url_for('giveaway_action', gid=x.id, action=a) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="ghost">{{ 'Draw winner' if a == 'draw' else 'Cancel & refund' }}</button></form>{% endfor %}
+      {% elif x.status == 'drawn' and not x.payout_paid %}<form method="post" action="{{ url_for('giveaway_action', gid=x.id, action='payout') }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button>Record payout</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="7" class="muted">No giveaways.</td></tr>{% endfor %}</table></div>
+</section>
+{% endblock %}
