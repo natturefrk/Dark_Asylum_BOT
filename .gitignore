@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+backups/
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+archive/
+*.tar.gz
+*.zip

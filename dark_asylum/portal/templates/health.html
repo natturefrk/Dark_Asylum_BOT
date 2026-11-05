@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}System health{% endblock %}
+{% block content %}
+<h1>System health</h1>
+<div class="cards">
+  {% for b in beats %}
+  <div class="card stat"><span>{{ b.name }}</span><strong class="st-{{ b.status }}">{{ b.status }}</strong>
+    <small>{{ b.updated }}<br>{{ b.detail }}</small></div>
+  {% else %}<p class="muted">No component has reported yet. Start the bot.</p>{% endfor %}
+</div>
+<p class="muted">Bot is marked "stale" if it has not checked in for 2 minutes. The rs3_* entries are the public Jagex
+  endpoints (clan roster, hiscores, RuneMetrics); "down" posts one alert to the staff channel and recovery posts another.
+  XP snapshots run every {{ interval_h }} hour(s); last completed pass: {{ last_run or 'none yet' }}.
+  These endpoints are unofficial and may change without notice.</p>
+<section class="card">
+  <h3>Backups</h3>
+  <p class="muted">Backups run daily from the bot and are kept 30 days in the primary and the separate secondary location.</p>
+  <form method="post" action="{{ url_for('backup_now') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button>Run backup now</button></form>
+</section>
+{% endblock %}

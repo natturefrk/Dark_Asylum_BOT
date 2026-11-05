@@ -1,0 +1,421 @@
+DARK ASYLUM BOT + WEB PORTAL
+QUESTIONS AND ANSWERS USED TO BUILD THE PROJECT
+===============================================================================
+Format:  Q = question asked   |   A = your answer (your own words in quotes)
+Notes in [brackets] are clarifications of how an answer was applied.
+Corrections you made later are marked "REVISED" so the final rule is clear.
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+PART 1 - EARLY DISCUSSION (before the Features.txt file)
+-------------------------------------------------------------------------------
+
+Q: Can I upload a text file and you create a bot from what I wrote?
+A: Yes. Discord bot with a web portal.
+
+TECH STACK
+A: "Im guessing python, sqlite, html and css" ... "Oh javascript too"
+   [Python + discord.py, SQLite, HTML/CSS/JavaScript portal.]
+
+RESTRICTING A COMMAND TO TWO PEOPLE
+Q: Can you isolate a command to two people by their Discord name and account for
+   name changes?
+A: Recommended using the permanent Discord user ID, not names.
+   You said: "Id rather not use user id as that is a security risk"
+   [Explained IDs are public identifiers and safe; names/nicknames are the real
+   risk. Options offered: pick by name at setup and store the ID, role-based,
+   or Discord OAuth login. Internal identity keys remain Discord IDs.]
+
+LINKING DISCORD ID, RSN AND JOIN DATE
+Q: How do I take a bunch of Discord IDs and attach a RuneScape name?
+A: Import a CSV (discord_id, rsn) into SQLite keyed by Discord ID.
+Q: Is there any way to do it automatically?
+A: Not fully. Options: match nicknames, self-service /link, verification code,
+   or exported plugin data.
+Q: Two commands (one captures RSN, one captures a manual join date) - can both
+   be permanently part of the member's data?
+A: Yes. One row per member keyed by Discord ID; each command fills its own column.
+Q: Can you run two commands in one?
+A: Yes - one command with two options. You chose: "/track rsn: Bob join_date: 10/30/2026"
+   and asked for an admin version. [Admin version: staff picks the member.]
+
+KICK COMMAND BY RSN
+Q: What would the args for a kick command be? Can it be RSN?
+A: Yes - look up the Discord ID saved for that RSN.
+
+PORTAL DESIGN
+A: You sent two dark CRM-dashboard screenshots, tabs.html, and a folder-tab
+   picture as references for the look (dark theme, side menu, cards, charts,
+   folder-style tabs across the top).
+
+
+-------------------------------------------------------------------------------
+PART 2 - FEATURES.TXT (your written requirements, summarized)
+-------------------------------------------------------------------------------
+- All data stored locally (shared SQLite database).
+- Comment ALL code and make it readable.
+- Portal modules in a side menu: Moderation, Ticketing, Banking and Points,
+  Reaction Roles, Clan Tracking, Clan Activities, Surveys.
+- Field explanations as tooltips and visible helper text in every module.
+- MFA (authenticator) at every login; password + MFA for anything that changes or
+  deletes; backup codes; reset by the two admins; sign out after 30 minutes
+  idle with a 2-minute warning.
+- Every submission is tracked, visible at the bottom of the page, and logged.
+- Dark, professional dashboard look with charts.
+- System health monitoring (Discord, bot, APIs).
+- Dashboard cards: Citadel stats, Clan XP, total XP, Bank of Dark Asylum stats.
+- Bot commands: track, clan_name, bank, join-date, kick, prefix, cprefix, ban,
+  temp_ban, xp, cxp, warn, temp_role.
+- Definitions: RSN = RuneScape name; member = clan member with @Member role;
+  guest = @everyone.
+
+
+-------------------------------------------------------------------------------
+PART 3 - QUESTIONS I ASKED AFTER READING FEATURES.TXT
+-------------------------------------------------------------------------------
+
+STORAGE AND HOSTING
+Q: By "local storage" do you mean a local SQLite database shared by bot and
+   portal, or browser storage?
+A: Local SQLite database shared by bot and portal.
+Q: Where will the bot and portal run?
+A: On my own computer/server, which I keep running.
+Q: Local network only, or reachable from the internet?
+A: From anywhere over the internet. "but secure"
+Q: Which game?
+A: RuneScape 3 only.
+
+PORTAL ACCESS AND SECURITY
+Q: Who can sign in to the portal?
+A: Only the two designated admins.
+Q: Discord login + authenticator, or username/password + authenticator?
+A: "I mentioned this question in my feature doc..."
+   [Authenticator MFA at every login, admin creation/recovery limited to the two admins.]
+Q: Should the extra password+MFA confirmation also apply to destructive bot
+   commands like kick/ban?
+A: Portal changes/deletions only. Bot commands use Discord permissions.
+
+RETENTION AND BACKUPS
+Q: How long to keep general audit logs?
+A: 90 days.
+Q: How long to keep ticket transcripts/archives?
+A: Keep until an admin deletes them.
+Q: Automatic backups?
+A: Yes - daily backups, keeping the latest 30 days.
+Q: Where should backups be stored?
+A: On the server and a separate drive I control.
+
+ROLES AND COMMAND ACCESS
+Q: For commands usable by "everyone except guests," require the @Member role?
+A: Yes - require the @Member role.
+Q: One shared member-command channel, or per-command channels?
+A: One shared member-command channel. (Leadership can use commands anywhere.)
+Q: Reply in the command channel or the configured output channel?
+A: Reply in the command channel by default, with optional routing.
+Q: Slash commands, prefix commands, or both?
+A: Prefix-based commands only. [/prefix and /cprefix become prefix commands.]
+Q: Default prefix?
+A: ! (exclamation mark).
+Q: Custom commands: same prefix or a separate one?
+A: Use ! for both initially.
+Q: What should custom commands do at first?
+A: Saved text responses only.
+
+TIME ZONES
+Q: One timezone or each viewer's local timezone?
+A: "For the portal one time zone which is RS3 time but, create a role for this,
+   the bot shows in the users timezone"
+Q: Is "RS3 time" UTC?
+A: Yes, UTC is the portal's fixed time.
+Q: How do members choose their timezone?
+A: A timezone command that stores their preference (not many timezone roles).
+
+MEMBER DATA
+Q: Who can set /join-date?
+A: Members set their own; leadership can set anyone's.
+Q: Does /track take effect immediately?
+A: Yes, immediately; leadership can correct later.
+Q: Should !track accept RSN plus optional join date, with !join-date separate?
+A: Yes - combined !track plus standalone !join-date.
+Q: Can members use !track for themselves while leadership targets others?
+A: Yes.
+Q: If an RSN is already linked to another Discord account?
+A: Reject it and alert leadership.
+Q: If a member changes their RuneScape name, keep the old one as an alias?
+A: No - replace the old RSN entirely.
+Q: When a member leaves, keep history marked "former" or delete the record?
+A: Delete their member record.
+Q: What does "delete" remove?
+A: Remove their RSN/profile and active tracking, but retain required audit and
+   bank transaction history.
+Q: If they rejoin, start a fresh membership period?
+A: Yes - new period, previous one kept in history.
+Q: Rejoin: carry strikes forward or reset?
+A: Start the new membership period with zero strikes.
+Q: Unspent points when someone leaves?
+A: Forfeit the balances but keep the historical ledger.
+
+RANKING
+Q: How do portal ranking points relate to RuneScape clan ranks?
+A: Track both separately (RS3 rank plus a portal rank from points/time).
+Q: Configurable rank names/thresholds/time-in-clan?
+A: Yes - configurable in the portal.
+Q: Who can opt a member out of ranking points?
+A: Only an admin.
+
+BANK
+Q: Bank unit?
+A: RuneScape coins (GP).
+Q: Who records bank deposits and payouts?
+A: Only the two portal admins.
+Q: Block giveaway publishing if bank balance is too low?
+A: Yes - check the balance before publishing.
+Q: Block GP redemption approval if the bank lacks funds?
+A: Yes - never allow the balance to go below zero.
+
+TICKETS
+Q: Ticket thread visibility?
+A: Private to the opener and authorized ticket staff.
+Q: Staff role per ticket type or one shared team?
+A: One shared ticket staff team for all types.
+Q: One role for claim and close, or separate?
+A: One shared ticket-staff role for both.
+Q: Who owns a claimed ticket?
+A: One claimant at a time; authorized staff can take over.
+Q: Transcripts: include attachments?
+A: Download attachments into the local ticket archive.
+Q: Reopen closed tickets?
+A: No - closed tickets stay archived; the opener creates a new ticket.
+Q: Appeal ticket type?
+A: Yes - include an appeal ticket type.
+Q: How can a banned person appeal?
+A: No appeal path for bans.
+
+COMPETITIONS
+Q: Can guests join competitions?
+A: "if they are for fun the guests can join ... if it has rewards then no only members"
+Q: How is completion verified for bingo/non-API competitions?
+A: Participants submit proof; an admin approves it.
+Q: Individuals or teams?
+A: Individuals only at first.
+Q: XP tournament scoring?
+A: One selected skill; rank by XP gained between start and end.
+Q: Snapshots during a tournament?
+A: Daily snapshots and a live leaderboard.
+Q: Ties?
+A: An admin chooses the winner.
+Q: Publish results automatically?
+A: Wait for admin review and confirmation.
+Q: Placement bonus points?
+A: Yes - allow admin-configured placement bonuses.
+
+SURVEYS
+Q: Anonymous or identified?
+A: Make anonymity configurable per survey.
+Q: Closing rule?
+A: Keep it open until an admin closes it.
+Q: Can participants change their answer?
+A: Yes, until it closes.
+Q: Open to guests?
+A: Members only.
+Q: Live results or only after closing?
+A: Show live results while it is open.
+
+GIVEAWAYS
+Q: How are winners selected?
+A: The bot randomly draws and announces automatically.
+Q: Withdraw entries before the draw?
+A: No - entries are final unless the giveaway is cancelled.
+Q: When are paid-entry points deducted?
+A: Immediately on entry; refunded only if the giveaway is cancelled.
+
+MODERATION
+Q: /temp_ban meaning?
+A: A Discord timeout. You chose to keep the name !temp_ban, and the duration is
+   chosen each time the command is used.
+Q: AutoMod action for keywords?
+A: Automatically delete matching messages and notify staff.
+Q: Warning expiry?
+A: Keep permanently unless leadership removes one.
+Q: Automatic actions from warnings?
+A: "we have a 3 strike rule, 1 is a verbal warning , 2 is a timeout, 3 is a ban"
+   - auto apply and notify staff.
+Q: Strike 2 timeout length?
+A: 24 hours.
+Q: Strike 3 ban length?
+A: Permanent until manually reversed.
+Q: Strike 1 delivery?
+A: The bot DMs the warning; log it if the DM fails.
+Q: Do kick/ban add strikes?
+A: Only !warn adds strikes; direct actions are logged separately.
+Q: Targeting guests with no RSN?
+A: Allow RSN or Discord mention.
+Q: DM members about automatic timeouts/bans?
+A: Yes, DM them and log delivery failures.
+
+REACTION ROLES
+Q: Dropdown or emoji reactions?
+A: Emoji reactions.
+Q: One role or several per panel?
+A: Allow multiple roles.
+
+CITADEL AND CLAN TRACKING
+Q: Keep previous cycle visited/capped results after a reset?
+A: Yes - archive each cycle's results before resetting.
+Q: XP history if the API gives none?
+A: Start collecting from launch.
+
+EVENTS
+Q: Recurring events?
+A: Support both recurring and one-time events.
+Q: Reminders?
+A: 24 hours and 1 hour before (configurable per event).
+
+HEALTH AND LOGGING
+Q: Outage alerts?
+A: Show in the portal and alert a configured staff channel.
+Q: Log read-only commands like xp/bank?
+A: No - log changes and important actions only.
+Q: Bulk message deletion logs?
+A: Metadata only (who, channel, date range, count) - not message content.
+Q: Setting changes in the audit log?
+A: Record before and after values and which admin changed it.
+
+AREAS YOU ASKED ME TO ADVISE ON
+- Logging: log important events (moderation, tickets, bank/points, setting
+  changes, giveaways, health incidents), not every message; short retention.
+- Competitions: draft -> open -> active -> review -> finished lifecycle with
+  start/end XP snapshots and RSVP.
+- Reaction roles: self-service role panels; bot role must sit above assigned
+  roles; privileged roles must not be assignable.
+
+
+-------------------------------------------------------------------------------
+PART 4 - POINTS, REDEMPTIONS AND THE ECONOMY
+-------------------------------------------------------------------------------
+
+EARNING POINTS
+Q: How do members earn portal points?
+A: Both manual admin awards AND configurable automatic milestones.
+Q: Manual awards - any amount or predefined types?
+A: Support both. A reason is required every time.
+Q: Which automatic milestones count?
+A: Both RuneScape XP/skill achievements and clan activity.
+Q: XP milestones?
+A: "certian xp milestones set by admins reached, level 99 and level 120 and 200
+   million xp in a skill, aslo total clan xp milestones set by admins"
+Q: Multiple milestones in one skill?
+A: Award each milestone once as it is reached.
+Q: Members who already meet a milestone at setup?
+A: Reward them once at setup.
+Q: Citadel points?
+A: Both visiting and capping; capping is worth more. Awarded once per cycle.
+   Capping also counts as a visit (cap earns visit points plus a separate bonus).
+Q: Event/competition attendance points?
+A: Yes, configurable. Awarded only after a host/admin confirms attendance (not RSVP).
+Q: Donations earn points?
+A: "This is a realllllly tough question..." I recommended no personal points.
+   You agreed: track donations separately and use shared clan goals for group
+   rewards. A shared goal can have a clan-wide reward. Donors may choose to be
+   anonymous on the public leaderboard.
+Q: Point-economy preview/simulator in the portal?
+A: Yes.
+
+FINAL POINT VALUES (you gave these)
+   Citadel visit .......................... 50 points
+   Citadel cap bonus ...................... +100 points (cap + visit = 150)
+   Attend a clan event .................... 150 points
+   Participate in a competition ........... 100 points
+   Competition placement .................. 1st +200 / 2nd +100 / 3rd +50
+   Conversion (draft) ..................... 1 point = 100,000 GP
+   XP milestone awards .................... set separately by admins
+   [Command to display this: !point_values  (plain text, not an embed)]
+
+TWO POINT BALANCES
+- Ranking balance and spending balance.
+- All points fill ranking first, then spending, unless an admin opts the member
+  out of ranking (then everything goes to spending).
+Q: Can members see balances?
+A: Private balances plus a public leaderboard of top earners.
+Q: Can members see their own history?
+A: Yes - their own transaction history.
+
+REDEMPTIONS (GP / ITEM TRADES)
+Q: What can spending points buy?
+A: "Either gp trade upto 150 milion or Item trade upto 150 million"
+   (150 million is the maximum value per redemption.)
+Q: Point cost?
+A: One fixed points-to-GP exchange rate.
+Q: Item value?
+A: I recommended a hybrid; you chose: show the Grand Exchange price as a
+   reference and let admins confirm or override.
+Q: When are points deducted?
+A: Approve first, deduct when completed.
+Q: Monthly limit?
+A: One GP/item redemption per month. REVISED: two redemption windows per month -
+   mid-month and month-end - and the member chooses one when submitting the
+   request. Admins set the exact dates; each window is a single day. The slot is
+   used when the request is approved.
+Q: Giveaway entries?
+A: Up to 5 total entries including the free one. Point cost is set per giveaway.
+Q: Two-month target?
+A: "I need them to be able to earn enough points to redeem 150m redeption in no
+   more than 2 months" - measured on points that actually reach the spending
+   balance after ranking, for a typical active member, from all clan activity
+   (capping is optional: "it is 100% up to them").
+
+BOSSING GEAR GOAL SHOP (added later)
+- Lets members pay toward gear in installments.
+- Everyone gets a flat 10% discount; admins can set a member-specific discount
+  that REPLACES the 10% (maximum 50%). Discounts apply only to this shop.
+- Contributions: GP only, recorded by an admin; they also increase the bank balance.
+- Reject contributions that exceed the remaining balance.
+- One active gear goal per member; the discounted price is locked when the goal starts.
+- Goal becomes "ready to fulfill" at the target; an admin confirms delivery; the
+  full catalog value is recorded as a bank payout and the goal closes.
+- Cancelling (or leaving) means an admin records a GP refund as a bank payout.
+- Catalog prices: GE reference with admin confirmation/override.
+- Admins create goals in the portal; members can check their progress by command.
+
+
+-------------------------------------------------------------------------------
+PART 5 - BUILD DECISIONS
+-------------------------------------------------------------------------------
+- You asked for the bot AND the portal to be coded together, from scratch:
+  "Please deleted everything you did... Please start completely fresh. DO NOT
+  EDIT THE EXISTING CODE, DELETE IT."
+  Confirmed: delete the repository's existing code too (done in an isolated
+  worktree; your main checkout was not touched).
+- "Please comment all code and what it does please" - firm requirement.
+- Not committed or merged; nothing has been run against live Discord.
+
+
+-------------------------------------------------------------------------------
+PART 6 - RUNESCAPE DATA SOURCES AND SNAPSHOTS
+-------------------------------------------------------------------------------
+You said there are APIs for clan member info, XP snapshots, and capping/visiting.
+I found and tested:
+  - Clan roster (RSN, rank, clan XP): official clan hiscores members_lite
+  - Per-skill XP: official RS3 hiscores index_lite.json
+  - Capping/visiting: the RuneMetrics adventure log API
+    ("Capping and visitng is the runemetrics adventure log api")
+  - No public RS3 XP-snapshot API exists, so the bot takes its own snapshots.
+  - Private RuneMetrics profiles can't be read; those members are flagged and
+    admins mark visits/caps by hand.
+Examples you gave for reference: lanodra.com (RS3 clan bot features) and
+runepixels.com (XP tracking).
+Q: How should the API snapshots be limited?
+A: First "Once per day", then REVISED: "actually is doable every 6 hours" - the
+   snapshot interval is every 6 hours (configurable setting).
+Defaults chosen by the build: roster hourly, Citadel log every 30 minutes.
+
+
+-------------------------------------------------------------------------------
+PART 7 - STILL OPEN / NOT VERIFIED
+-------------------------------------------------------------------------------
+- The exact wording of Citadel visit/cap entries in the adventure log was not
+  confirmed against a real public profile.
+- The data endpoints are unofficial and were only tested with mocked responses.
+- Rank promotion is a view only (staff promote in-game).
+- Never run on live Discord - test on a private server first.

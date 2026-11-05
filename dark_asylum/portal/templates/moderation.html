@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Moderation{% endblock %}
+{% block content %}
+<h1>Moderation &amp; settings</h1>
+<div class="tabs" data-tabs>
+  <button class="tab on" data-tab="settings">Settings</button>
+  <button class="tab" data-tab="commands">Custom commands</button>
+  <button class="tab" data-tab="roles">Temporary roles</button>
+  <button class="tab" data-tab="warnings">Warnings</button>
+</div>
+
+<section class="card tabpanel" id="tab-settings">
+  <form method="post" action="{{ url_for('settings_save') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Built-in prefix
+      <select name="prefix">{% for p in prefixes %}<option {{ 'selected' if p == current.prefix }}>{{ p }}</option>{% endfor %}</select>
+      <small>Character that starts built-in bot commands.</small></label>
+    <label>Custom-command prefix
+      <select name="cprefix">{% for p in prefixes %}<option {{ 'selected' if p == current.cprefix }}>{{ p }}</option>{% endfor %}</select>
+      <small>Character that starts custom commands.</small></label>
+    <label>Clan name <input name="clan_name" value="{{ current.clan_name }}"></label>
+    <label>Member role <input name="member_role" value="{{ current.member_role }}">
+      <small>Role name or ID that marks clan members.</small></label>
+    <label>Senior leadership role <input name="sr_role" value="{{ current.sr_role }}"></label>
+    <label>Junior leadership role <input name="jr_role" value="{{ current.jr_role }}"></label>
+    <label>Member command channel ID <input name="command_channel_id" value="{{ current.command_channel_id }}">
+      <small>Members may only use commands here. Blank = anywhere. Leadership is never restricted.</small></label>
+    <label>Staff alert channel ID <input name="staff_channel_id" value="{{ current.staff_channel_id }}">
+      <small>Where the bot posts moderation notices, backup and health alerts.</small></label>
+    <label>Ranking requirement (points) <input name="ranking_target_points" value="{{ current.ranking_target_points }}">
+      <small>Points fill this before the spending balance (unless a member is opted out).</small></label>
+    <label>GP per point <input name="points_to_gp" value="{{ current.points_to_gp }}">
+      <small>Draft conversion; 1 point = 100,000 GP by default.</small></label>
+    <label>XP snapshot interval (hours, 1-24) <input name="xp_snapshot_hours" value="{{ current.xp_snapshot_hours }}">
+      <small>How often hiscores are snapshotted for linked members. Default 6; the last run is stored so restarts never repeat early.</small></label>
+    <label>Roster sync (minutes, 15-1440) <input name="roster_interval_minutes" value="{{ current.roster_interval_minutes }}">
+      <small>Clan roster / clan XP refresh. Needs a bot restart to apply.</small></label>
+    <label>Citadel poll (minutes, 10-120) <input name="citadel_poll_minutes" value="{{ current.citadel_poll_minutes }}">
+      <small>Adventure logs only keep the latest 20 entries, so keep this short. Needs a bot restart to apply.</small></label>
+    {{ confirm() }}
+    <button>Save settings</button>
+  </form>
+</section>
+
+<section class="card tabpanel" id="tab-commands" hidden>
+  <table><tr><th>Command</th><th>Response</th><th></th></tr>
+    {% for c in cmds %}<tr><td>{{ c.name }}</td><td>{{ c.response }}</td><td>
+      <form method="post" action="{{ url_for('command_delete', name=c.name) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Delete</button></form></td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No custom commands.</td></tr>{% endfor %}</table>
+  <form method="post" action="{{ url_for('command_save') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Name <input name="name" maxlength="24" required><small>Letters/numbers only. Existing names are updated.</small></label>
+    <label>Response text <textarea name="response" maxlength="1500" required></textarea>
+      <small>Saved text only; custom commands never execute anything.</small></label>
+    {{ confirm() }}<button>Save command</button>
+  </form>
+</section>
+
+<section class="card tabpanel" id="tab-roles" hidden>
+  <table><tr><th>Member ID</th><th>Role ID</th><th>Expires (UTC)</th><th>Granted by</th></tr>
+    {% for t in temp %}<tr><td>{{ t.discord_id }}</td><td>{{ t.role_id }}</td><td>{{ t.expires_at }}</td><td>{{ t.granted_by }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No active temporary roles. Grant them with the bot's temp_role command.</td></tr>{% endfor %}</table>
+</section>
+
+<section class="card tabpanel" id="tab-warnings" hidden>
+  <table><tr><th>When</th><th>Member ID</th><th>Strike</th><th>Action</th><th>Reason</th><th>DM sent</th></tr>
+    {% for w in warns %}<tr><td>{{ w.created_at }}</td><td>{{ w.discord_id }}</td><td>{{ w.strike_number }}</td>
+      <td>{{ w.action_taken }}</td><td>{{ w.reason }}</td><td>{{ 'yes' if w.dm_delivered else 'no' }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No warnings.</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Reaction roles{% endblock %}
+{% block content %}
+<h1>Reaction roles</h1>
+<section class="card">
+  <h3>Add a mapping</h3>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Channel ID <input name="channel_id" inputmode="numeric" required><small>Channel containing the message.</small></label>
+    <label>Message ID <input name="message_id" inputmode="numeric" required><small>Right-click message → Copy Message ID.</small></label>
+    <label>Emoji <input name="emoji" required><small>Unicode emoji, or &lt;:name:id&gt; for custom ones.</small></label>
+    <label>Role ID <input name="role_id" inputmode="numeric" required>
+      <small>Members may pick several. Privileged, leadership, member and staff roles are blocked by the bot.</small></label>
+    {{ confirm() }}<button>Add</button>
+  </form>
+</section>
+<section class="card">
+  <table><tr><th>Message</th><th>Emoji</th><th>Role ID</th><th>Status</th><th></th></tr>
+    {% for r in rows %}<tr><td>{{ r.message_id }}</td><td>{{ r.emoji }}</td><td>{{ r.role_id }}</td>
+      <td class="st-{{ 'ok' if r.status == 'ok' else 'error' if r.status == 'blocked' else 'stale' }}">{{ r.status }} {{ r.status_note or '' }}</td>
+      <td><form method="post" action="{{ url_for('reaction_role_delete', mapping_id=r.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Remove</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No mappings yet.</td></tr>{% endfor %}</table>
+  <p class="muted">The role must sit below the bot's top role. Removing a mapping does not take roles away from people who have them.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{# Reusable "confirm with password + authenticator" block for every change form. #}
+{% macro confirm() %}
+<fieldset class="confirm">
+  <legend>Confirm this change</legend>
+  <label>Your password
+    <input type="password" name="confirm_password" autocomplete="current-password" required>
+    <small>Required for every change.</small></label>
+  <label>Authenticator code
+    <input name="confirm_otp" inputmode="numeric" autocomplete="one-time-code" required>
+    <small>A fresh 6-digit code (or an unused backup code).</small></label>
+</fieldset>
+{% endmacro %}
+
+{% macro field(label, help) %}
+<span class="label" title="{{ help }}">{{ label }}</span><small>{{ help }}</small>
+{% endmacro %}
+

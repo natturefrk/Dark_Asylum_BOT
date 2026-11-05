@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Points{% endblock %}
+{% block content %}
+<h1>Points</h1>
+<div class="tabs" data-tabs>
+  <button class="tab on" data-tab="award">Award points</button>
+  <button class="tab" data-tab="presets">Preset awards</button>
+  <button class="tab" data-tab="ledger">Ledger</button>
+  <button class="tab" data-tab="sim">Reward simulator</button>
+</div>
+
+<section class="card tabpanel" id="tab-award">
+  <form method="post" action="{{ url_for('points_award') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Member Discord ID <input name="discord_id" data-search="1" list="member-hints" inputmode="numeric" required>
+      <small>Start typing an RSN or ID to autocomplete.</small></label>
+    <datalist id="member-hints"></datalist>
+    <label>Preset <select id="preset-pick"><option value="">Custom amount</option>
+      {% for a in awards %}<option value="{{ a.amount }}">{{ a.name }} ({{ a.amount }})</option>{% endfor %}</select></label>
+    <label>Amount <input name="amount" id="award-amount" inputmode="numeric" required></label>
+    <label>Reason <input name="reason" maxlength="200" required><small>Mandatory for manual awards.</small></label>
+    {{ confirm() }}
+    <button>Award</button>
+  </form>
+</section>
+
+<section class="card tabpanel" id="tab-presets" hidden>
+  <table><tr><th>Name</th><th>Points</th></tr>
+    {% for a in awards %}<tr><td>{{ a.name }}</td><td>{{ a.amount }}</td></tr>{% endfor %}</table>
+  <form method="post" action="{{ url_for('points_preset_save') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Name <input name="name" required><small>Existing names are updated.</small></label>
+    <label>Points <input name="amount" inputmode="numeric" required></label>
+    {{ confirm() }}<button>Save preset</button>
+  </form>
+</section>
+
+<section class="card tabpanel" id="tab-ledger" hidden>
+  <table><tr><th>When</th><th>Member</th><th>Kind</th><th>Ranking</th><th>Spending</th><th>Reason</th></tr>
+    {% for r in rows %}<tr><td>{{ r.created_at }}</td><td>{{ r.rsn or r.discord_id }}</td><td>{{ r.kind }}</td>
+      <td>{{ '%+d'|format(r.ranking_delta) }}</td><td>{{ '%+d'|format(r.spending_delta) }}</td><td>{{ r.reason }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No point activity.</td></tr>{% endfor %}</table>
+</section>
+
+<section class="card tabpanel" id="tab-sim" hidden data-rate="{{ rate }}">
+  <p class="muted">Estimate how long a typical member takes to reach the 150,000,000 GP redemption cap at the current rate of {{ rate|gp }} GP per point. Nothing is saved.</p>
+  <div class="form-grid">
+    <label>Citadel visits / month <input id="sim-visits" value="4"></label>
+    <label>Cap bonuses / month <input id="sim-caps" value="2"></label>
+    <label>Events attended / month <input id="sim-events" value="4"></label>
+    <label>Competitions / month <input id="sim-comps" value="1"></label>
+  </div>
+  <p>Points / month: <strong id="sim-points">—</strong> · GP value / month: <strong id="sim-gp">—</strong> · Months to 150m: <strong id="sim-months">—</strong></p>
+</section>
+{% endblock %}

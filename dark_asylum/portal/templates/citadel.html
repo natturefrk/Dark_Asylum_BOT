@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Citadel{% endblock %}
+{% block content %}
+<h1>Citadel — cycle {{ cycle }}</h1>
+<section class="card">
+  <h3>Record progress</h3>
+  <form method="post" action="{{ url_for('citadel_mark') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Member Discord ID <input name="discord_id" data-search="1" list="member-hints" inputmode="numeric" required>
+      <small>Type an RSN or ID to autocomplete.</small></label>
+    <datalist id="member-hints"></datalist>
+    <label>Result <select name="result"><option value="visited">Visited (+visit points)</option>
+      <option value="capped">Capped (implies visit, + cap bonus)</option></select>
+      <small>Each award is paid once per cycle; capping is optional.</small></label>
+    {{ confirm() }}<button>Record</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Current checklist</h3>
+  <table><tr><th>Member</th><th>Visited</th><th>Capped</th></tr>
+    {% for e in entries %}<tr><td>{{ e.rsn or e.discord_id }}</td><td>{{ '✔' if e.visited else '—' }}</td><td>{{ '✔' if e.capped else '—' }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Nobody recorded yet this cycle.</td></tr>{% endfor %}</table>
+  <form method="post" action="{{ url_for('citadel_reset') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}
+    <button class="danger">Archive cycle &amp; start new</button></form>
+</section>
+<section class="card">
+  <h3>Cycle history</h3>
+  <table><tr><th>Cycle</th><th>Started</th><th>Ended</th><th>Visited</th><th>Capped</th></tr>
+    {% for h in history %}<tr><td>{{ h.id }}</td><td>{{ h.started_at }}</td><td>{{ h.ended_at }}</td><td>{{ h.visitors }}</td><td>{{ h.cappers }}</td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No archived cycles.</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}

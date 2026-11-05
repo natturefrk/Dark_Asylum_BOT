@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Rewards &amp; Goals{% endblock %}
+{% block content %}
+<h1>Rewards &amp; Goals</h1>
+<p class="muted">XP milestones cannot trigger until a verified RS3 XP provider is configured; none ships with this release.</p>
+<div data-tabs>
+  <button data-tab="ms">XP milestones</button><button data-tab="red">Redemptions</button>
+  <button data-tab="gear">Bossing gear</button><button data-tab="purge">Message cleanup</button>
+</div>
+
+<div class="tabpanel" id="tab-ms">
+<section class="card"><h3>Add milestone</h3>
+<form method="post" action="{{ url_for('rewards_action', area='milestone', action='add') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Scope <select name="scope"><option>skill</option><option>clan</option></select><small>Skill = one member's XP; clan = total clan XP, paid to every active member once.</small></label>
+  <label>Skill <input name="skill" value="*"><small>Skill name, or * for any skill. Ignored for clan.</small></label>
+  <label>XP threshold <input name="threshold" required><small>Reaching it pays once, ever.</small></label>
+  <label>Points <input name="points" required><small>Awarded to ranking and spending balances.</small></label>
+  {{ confirm() }}<button>Add</button></form></section>
+<section class="card"><table><tr><th>Scope</th><th>Skill</th><th>XP</th><th>Points</th><th>On</th><th></th></tr>
+{% for m in ms %}<tr><td>{{ m.scope }}</td><td>{{ m.skill or '-' }}</td><td>{{ '{:,}'.format(m.threshold) }}</td><td>{{ m.points }}</td><td>{{ 'yes' if m.enabled else 'no' }}</td>
+<td><form method="post" action="{{ url_for('rewards_action', area='milestone', action='toggle') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+<input type="hidden" name="id" value="{{ m.id }}"><input type="hidden" name="enabled" value="{{ 0 if m.enabled else 1 }}">{{ confirm() }}<button>{{ 'Disable' if m.enabled else 'Enable' }}</button></form></td></tr>{% endfor %}</table></section>
+</div>
+
+<div class="tabpanel" id="tab-red">
+<section class="card"><h3>Add window</h3>
+<form method="post" action="{{ url_for('rewards_action', area='window', action='add') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Day (UTC) <input name="day" placeholder="YYYY-MM-DD" required><small>A single day members can be paid on.</small></label>
+  <label>Kind <select name="kind"><option value="mid">mid-month</option><option value="end">month-end</option></select><small>One of each per month.</small></label>
+  {{ confirm() }}<button>Add</button></form>
+<p class="muted">Windows: {% for w in windows %}{{ w.day }} ({{ w.kind }}){{ ', ' if not loop.last }}{% else %}none{% endfor %}</p></section>
+<section class="card"><h3>Requests</h3><table><tr><th>#</th><th>Member</th><th>What</th><th>GP</th><th>Points</th><th>Month</th><th>Status</th><th></th></tr>
+{% for r in reds %}<tr><td>{{ r.id }}</td><td>{{ r.discord_id }}</td><td>{{ r.kind }} {{ r.item_name or '' }}</td><td>{{ '{:,}'.format(r.gp_value) }}</td><td>{{ r.points_cost }}</td><td>{{ r.month }}</td><td>{{ r.status }}</td><td>
+{% for act, label, when in [('approve','Approve','requested'),('reject','Reject','requested'),('pay','Mark paid','approved'),('cancel','Cancel + refund','approved')] if r.status == when %}
+<form method="post" action="{{ url_for('rewards_action', area='redeem', action=act) }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ r.id }}">{{ confirm() }}<button>{{ label }}</button></form>{% endfor %}</td></tr>
+{% else %}<tr><td colspan="8" class="muted">No requests.</td></tr>{% endfor %}</table></section>
+</div>
+
+<div class="tabpanel" id="tab-gear">
+<section class="card"><h3>Catalog item</h3>
+<form method="post" action="{{ url_for('rewards_action', area='item', action='save') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Name <input name="name" required></label>
+  <label>Price (GP) <input name="price" required><small>Full catalog value; paid out by the bank on delivery.</small></label>
+  <label>Source <select name="source"><option value="manual">manual</option><option value="ge_reference">GE reference</option></select></label>
+  <label><input type="checkbox" name="confirmed"> Confirmed <small>Goals can only start on confirmed prices.</small></label>
+  {{ confirm() }}<button>Save</button></form>
+<table>{% for i in items %}<tr><td>{{ i.id }}</td><td>{{ i.name }}</td><td>{{ '{:,}'.format(i.price_gp) }}</td><td>{{ i.price_source }}</td><td>{{ 'confirmed' if i.confirmed else 'unconfirmed' }}</td></tr>{% endfor %}</table></section>
+<section class="card"><h3>Member discount</h3>
+<form method="post" action="{{ url_for('rewards_action', area='discount', action='set') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Member Discord ID <input name="member" required></label>
+  <label>Total discount % <input name="percent"><small>Replaces the default ({{ default_discount }}%); max 50. Blank removes the override.</small></label>
+  {{ confirm() }}<button>Set</button></form></section>
+<section class="card"><h3>Start goal</h3>
+<form method="post" action="{{ url_for('rewards_action', area='goal', action='start') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Member Discord ID <input name="member" required></label>
+  <label>Item ID <input name="item" required><small>From the catalog above. The discounted price locks now.</small></label>
+  {{ confirm() }}<button>Start</button></form></section>
+<section class="card"><h3>Goals</h3><table><tr><th>#</th><th>Member</th><th>Item</th><th>Target</th><th>Paid in</th><th>Status</th><th>Action</th></tr>
+{% for gl in goals %}<tr><td>{{ gl.id }}</td><td>{{ gl.discord_id }}</td><td>{{ gl.item_name }} ({{ gl.discount_pct }}% off)</td><td>{{ '{:,}'.format(gl.target_gp) }}</td><td>{{ '{:,}'.format(gl.contributed_gp) }}</td><td>{{ gl.status }}</td><td>
+{% if gl.status == 'active' %}<form method="post" action="{{ url_for('rewards_action', area='goal', action='contribute') }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ gl.id }}"><input name="amount" placeholder="GP" size="10">{{ confirm() }}<button>Add GP</button></form>{% endif %}
+{% if gl.status == 'ready' %}<form method="post" action="{{ url_for('rewards_action', area='goal', action='fulfill') }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ gl.id }}">{{ confirm() }}<button>Confirm delivered</button></form>{% endif %}
+{% if gl.status in ('active','ready') %}<form method="post" action="{{ url_for('rewards_action', area='goal', action='cancel') }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ gl.id }}">{{ confirm() }}<button class="danger">Cancel + refund</button></form>{% endif %}
+</td></tr>{% else %}<tr><td colspan="7" class="muted">No goals.</td></tr>{% endfor %}</table></section>
+</div>
+
+<div class="tabpanel" id="tab-purge">
+<section class="card"><h3>Delete old messages</h3>
+<form method="post" action="{{ url_for('rewards_action', area='purge', action='queue') }}" class="form-grid">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Channel ID <input name="channel" required><small>The bot needs Manage Messages and Read History there.</small></label>
+  <label>Older than <select name="days"><option>30</option><option>60</option><option>90</option></select> days</label>
+  {{ confirm() }}<button class="danger">Queue deletion</button></form>
+<table>{% for p in purges %}<tr><td>{{ p.id }}</td><td>{{ p.channel_id }}</td><td>{{ p.days }}d</td><td>{{ p.status }}</td><td>{{ p.deleted if p.deleted is not none else '' }}</td><td>{{ p.note or '' }}</td></tr>{% endfor %}</table></section>
+</div>
+{% endblock %}

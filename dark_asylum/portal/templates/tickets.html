@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Ticketing{% endblock %}
+{% block content %}
+<h1>Ticketing</h1>
+<div class="tabs" data-tabs>
+  <button class="tab on" data-tab="list">Tickets</button>
+  <button class="tab" data-tab="types">Categories</button>
+  <button class="tab" data-tab="config">Settings</button>
+</div>
+<section class="card tabpanel" id="tab-list">
+  <table><tr><th>#</th><th>Type</th><th>Opener</th><th>Status</th><th>Claimed by</th><th>Opened (UTC)</th><th>Archive</th></tr>
+    {% for t in rows %}<tr><td>{{ t.id }}</td><td>{{ t.type_name }}</td><td>{{ t.opener_id }}</td><td>{{ t.status }}</td>
+      <td>{{ t.claimed_by or '—' }}</td><td>{{ t.created_at }}</td>
+      <td>{% if t.transcript_path %}<a href="{{ url_for('ticket_transcript', ticket_id=t.id) }}">Transcript</a>
+        ({{ t.message_count }} msgs, DM {{ t.dm_status }})
+        {% for a in atts if a.ticket_id == t.id %}<br><a href="{{ url_for('ticket_attachment', att_id=a.id) }}">{{ a.original_name }}</a>{% endfor %}
+        {% else %}—{% endif %}</td></tr>
+    {% else %}<tr><td colspan="7" class="muted">No tickets yet. Post the panel with the bot's ticketpanel command.</td></tr>{% endfor %}
+  </table>
+</section>
+<section class="card tabpanel" id="tab-types" hidden>
+  <table><tr><th>Name</th><th>Description</th><th>Enabled</th><th></th></tr>
+    {% for t in types %}<tr><td>{{ t.name }}</td><td>{{ t.description }}</td><td>{{ 'yes' if t.enabled else 'no' }}</td><td>
+      <form method="post" action="{{ url_for('ticket_type_toggle', type_id=t.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="ghost">{{ 'Disable' if t.enabled else 'Enable' }}</button></form></td></tr>{% endfor %}</table>
+  <form method="post" action="{{ url_for('ticket_type_save') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Name <input name="name" maxlength="50" required><small>Existing names are updated. Keep an Appeal category for moderation appeals.</small></label>
+    <label>Description <input name="description" maxlength="100" required><small>Shown in the Discord dropdown.</small></label>
+    {{ confirm() }}<button>Save category</button>
+  </form>
+</section>
+<section class="card tabpanel" id="tab-config" hidden>
+  <form method="post" action="{{ url_for('settings_save') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Tickets channel ID <input name="ticket_channel_id" value="{{ current.ticket_channel_id }}">
+      <small>Private threads are created under this text channel. Blank = the channel holding the panel.</small></label>
+    <label>Ticket staff role <input name="ticket_staff_role" value="{{ current.ticket_staff_role }}">
+      <small>One shared team that may claim and close tickets (leadership always can).</small></label>
+    {{ confirm() }}<button>Save</button>
+  </form>
+</section>
+{% endblock %}

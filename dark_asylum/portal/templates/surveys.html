@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Surveys{% endblock %}
+{% block content %}
+<h1>Surveys</h1>
+<section class="card">
+  <h3>New survey</h3>
+  <form method="post" action="{{ url_for('survey_create') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Question <input name="question" maxlength="300" required><small>Shown in Discord with one button per option.</small></label>
+    <label>Options <textarea name="options" rows="4" required></textarea><small>One per line, 2-10 options. Members may change their answer while open.</small></label>
+    <label><input type="checkbox" name="anonymous"> Anonymous <small>Voter identities are never stored; only counts are visible.</small></label>
+    {{ confirm() }}<button>Create</button>
+  </form>
+</section>
+{% for s in rows %}
+<section class="card">
+  <h3>#{{ s.id }} {{ s.question }} <span class="muted">({{ s.status }}{{ ', anonymous' if s.anonymous }})</span></h3>
+  <table>{% for o in tallies[s.id] %}<tr><td>{{ o.label }}</td><td>{{ o.votes }}</td></tr>{% endfor %}</table>
+  {% if s.status == 'open' %}
+  <form method="post" action="{{ url_for('survey_close', sid=s.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Close survey</button></form>
+  {% endif %}
+</section>
+{% else %}<p class="muted">No surveys yet.</p>{% endfor %}
+{% endblock %}

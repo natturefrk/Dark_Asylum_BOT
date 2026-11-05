@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="muted">Important actions only, kept 90 days. Deleted message contents are never stored.</p>
+<section class="card">
+  <table><tr><th>When (UTC)</th><th>Source</th><th>Actor</th><th>Action</th><th>Target</th><th>Before → After</th><th>Detail</th></tr>
+    {% for r in rows %}<tr><td>{{ r.created_at }}</td><td>{{ r.source }}</td><td>{{ r.actor_id or '—' }}</td>
+      <td>{{ r.category }}/{{ r.action }}</td><td>{{ r.target or '' }}</td><td>{{ r.before or '—' }} → {{ r.after or '—' }}</td>
+      <td>{{ r.detail or '' }}</td></tr>
+    {% else %}<tr><td colspan="7" class="muted">Nothing logged.</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}

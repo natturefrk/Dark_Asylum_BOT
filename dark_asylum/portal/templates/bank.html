@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}Banking{% endblock %}
+{% block content %}
+<h1>Banking</h1>
+<div class="cards"><div class="card stat"><span>Current balance</span><strong>{{ balance|gp }} GP</strong></div></div>
+<section class="card">
+  <h3>Record a transaction</h3>
+  <form method="post" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Type <select name="direction"><option value="deposit">Deposit</option><option value="withdraw">Withdrawal</option></select>
+      <small>Withdrawals that would make the balance negative are rejected.</small></label>
+    <label>Amount (GP) <input name="amount" inputmode="numeric" required></label>
+    <label>Reason <input name="reason" maxlength="200" required><small>Stored permanently in the ledger.</small></label>
+    {{ confirm() }}
+    <button>Record</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Ledger</h3>
+  <table><tr><th>When (UTC)</th><th>Amount</th><th>Balance after</th><th>Reason</th><th>Admin</th></tr>
+    {% for r in rows %}<tr><td>{{ r.created_at }}</td><td class="{{ 'neg' if r.amount_gp < 0 else 'pos' }}">{{ '%+d'|format(r.amount_gp) }}</td>
+      <td>{{ r.balance_after|gp }}</td><td>{{ r.reason }}</td><td>{{ r.actor_id }}</td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No transactions.</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

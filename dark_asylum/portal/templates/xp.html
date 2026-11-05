@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm %}
+{% block title %}XP{% endblock %}
+{% block content %}
+<h1>XP tracking</h1>
+<p class="muted">Gains come from our own snapshots of the public hiscores, taken every {{ interval_h }} hour(s) for
+  linked active members (last completed pass: {{ last_run or 'none yet' }}). A period's gain is the latest snapshot minus the last
+  snapshot before the period's UTC boundary; early on, history is shorter than the period.</p>
+<div class="grid2">
+  {% for label, rows in boards.items() %}
+  <section class="card">
+    <h3>Top 10 &ndash; {{ label }}</h3>
+    {% set best = (rows|map(attribute='gain')|max) if rows else 1 %}
+    <svg viewBox="0 0 320 {{ (rows|length * 22) or 22 }}" class="chart" role="img" aria-label="Top XP earners {{ label }}">
+      {% for r in rows %}
+      <text x="0" y="{{ loop.index0 * 22 + 14 }}" fill="#ccc" font-size="11">{{ r.rsn }}</text>
+      <rect x="90" y="{{ loop.index0 * 22 + 4 }}" height="14" fill="#c94b4b" width="{{ (r.gain * 160 / best)|round(1) }}"/>
+      <text x="{{ 94 + (r.gain * 160 / best)|round(1) }}" y="{{ loop.index0 * 22 + 15 }}" fill="#ccc" font-size="10">{{ r.gain|gp }}</text>
+      {% endfor %}
+    </svg>
+    {% if not rows %}<p class="muted">No gains recorded yet.</p>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+<section class="card">
+  <h3>Clan roster XP (since joining the clan)</h3>
+  <table><tr><th>RSN</th><th>Rank</th><th>Clan XP</th></tr>
+    {% for r in roster %}<tr><td>{{ r.rsn }}</td><td>{{ r.rank }}</td><td>{{ r.total_xp|gp }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">Roster not synced yet (set the clan name and wait for the hourly sync).</td></tr>{% endfor %}
+  </table>
+</section>
+<section class="card">
+  <h3>Private profiles</h3>
+  {% if private %}<p>{% for p in private %}{{ p.rsn }}{{ ', ' if not loop.last }}{% endfor %}</p>
+  <p class="muted">Citadel visits cannot be read automatically; record them manually on the Citadel page.</p>
+  {% else %}<p class="muted">None detected.</p>{% endif %}
+</section>
+<section class="card">
+  <h3>Double XP dates</h3>
+  <p class="muted">Entered by hand (no public feed). Shown by the bot's dxp command. Dates are UTC.</p>
+  <form method="post" action="{{ url_for('dxp_add') }}" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Starts <input name="starts_on" placeholder="YYYY-MM-DD" required></label>
+    <label>Ends <input name="ends_on" placeholder="YYYY-MM-DD" required></label>
+    <label>Note <input name="note" maxlength="120"></label>
+    {{ confirm() }}<button>Add period</button>
+  </form>
+  <table><tr><th>Starts</th><th>Ends</th><th>Note</th><th></th></tr>
+    {% for d in dxp %}<tr><td>{{ d.starts_on }}</td><td>{{ d.ends_on }}</td><td>{{ d.note }}</td><td>
+      <form method="post" action="{{ url_for('dxp_delete', pid=d.id) }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">{{ confirm() }}<button class="danger">Delete</button></form></td></tr>
+    {% else %}<tr><td colspan="4" class="muted">None set.</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

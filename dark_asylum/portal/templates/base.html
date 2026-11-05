@@ -1,0 +1,72 @@
+{# Shared layout: side navigation, folder-style tabs, flash messages, idle warning and change history. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · Dark Asylum</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body data-csrf="{{ csrf }}" data-idle="{{ idle_seconds }}" data-warn="{{ warn_seconds }}"
+      data-authed="{{ '1' if admin else '' }}">
+
+{% if admin %}
+<aside class="sidebar">
+  <div class="brand">☠ Dark Asylum</div>
+  <nav>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'on' if tab == 'dashboard' }}">Dashboard</a>
+    <a href="{{ url_for('moderation_page') }}" class="{{ 'on' if tab == 'moderation' }}">Moderation</a>
+    <a href="{{ url_for('bank_page') }}" class="{{ 'on' if tab == 'bank' }}">Banking</a>
+    <a href="{{ url_for('points_page') }}" class="{{ 'on' if tab == 'points' }}">Points</a>
+    <a href="{{ url_for('tickets_page') }}" class="{{ 'on' if tab == 'tickets' }}">Ticketing</a>
+    <a href="{{ url_for('reaction_roles_page') }}" class="{{ 'on' if tab == 'reaction' }}">Reaction Roles</a>
+    <a href="{{ url_for('citadel_page') }}" class="{{ 'on' if tab == 'citadel' }}">Citadel</a>
+    <a href="{{ url_for('activities_page') }}" class="{{ 'on' if tab == 'activities' }}">Clan Activities</a>
+    <a href="{{ url_for('surveys_page') }}" class="{{ 'on' if tab == 'surveys' }}">Surveys</a>
+    <a href="{{ url_for('rewards_page') }}" class="{{ 'on' if tab == 'rewards' }}">Rewards &amp; Goals</a>
+    <a href="{{ url_for('xp_page') }}" class="{{ 'on' if tab == 'xp' }}">XP</a>
+    <a href="{{ url_for('members_page') }}" class="{{ 'on' if tab == 'members' }}">Clan Tracking</a>
+    <a href="{{ url_for('audit_page') }}" class="{{ 'on' if tab == 'audit' }}">Audit Log</a>
+    <a href="{{ url_for('health_page') }}" class="{{ 'on' if tab == 'health' }}">System Health</a>
+    <a href="{{ url_for('account_page') }}" class="{{ 'on' if tab == 'account' }}">Admin Account</a>
+  </nav>
+  <form method="post" action="{{ url_for('logout') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="ghost">Sign out</button>
+  </form>
+</aside>
+{% endif %}
+
+<main class="{{ 'with-side' if admin }}">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+
+  {% if admin %}
+  <section class="card history">
+    <h3>Recent changes</h3>
+    {% if changes %}
+    <table><tr><th>When (UTC)</th><th>Action</th><th>Target</th><th>Before → After</th></tr>
+      {% for c in changes %}
+      <tr><td>{{ c.created_at }}</td><td>{{ c.category }}/{{ c.action }}</td><td>{{ c.target or '' }}</td>
+          <td>{{ c.before or '—' }} → {{ c.after or '—' }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">No changes recorded yet.</p>{% endif %}
+  </section>
+  {% endif %}
+</main>
+
+{% if admin %}
+<div id="idle-modal" class="modal" hidden>
+  <div class="card">
+    <h3>Still there?</h3>
+    <p>You will be signed out in <strong id="idle-count">120</strong> seconds.</p>
+    <button id="idle-stay">Stay signed in</button>
+  </div>
+</div>
+{% endif %}
+<script src="{{ url_for('static', filename='portal.js') }}"></script>
+</body>
+</html>
